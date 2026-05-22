@@ -44,10 +44,21 @@ const callAPI = async function(payload) {
 
 const ADBlock = function(props) {
   return React.createElement("div", {
-    style: { background: "repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5 2px,#fafafa 2px,#fafafa 12px)", border: "1px dashed #ddd", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "#ccc", fontSize: 11, height: props.h || 90, margin: "20px 0", fontFamily: "system-ui" }
+    style: { display: "block", margin: "20px 0", textAlign: "center", minHeight: props.h || 90 }
   },
-    React.createElement("span", null, "Advertisement — " + props.slot),
-    React.createElement("span", { style: { fontSize: 10, marginTop: 2, color: "#ddd" } }, "Replace with Google AdSense code")
+    React.createElement("ins", {
+      className: "adsbygoogle",
+      style: { display: "block" },
+      "data-ad-client": "ca-pub-6071901244409132",
+      "data-ad-slot": props.slot,
+      "data-ad-format": "auto",
+      "data-full-width-responsive": "true"
+    }),
+    React.createElement("script", {
+      dangerouslySetInnerHTML: {
+        __html: "(adsbygoogle = window.adsbygoogle || []).push({});"
+      }
+    })
   );
 };
 
