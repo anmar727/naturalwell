@@ -1,24 +1,23 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
-
   try {
+    const body = Object.assign({}, req.body, { max_tokens: 4000 });
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": process.env.ANTHROPIC_API_KEY,
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "web-search-2025-03-05",
       },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(body),
     });
     const text = await response.text();
-    if (!text) return res.status(500).json({ error: "Empty response" });
+    if (!text || !text.trim()) return res.status(500).json({ error: "Empty response" });
     res.status(200).json(JSON.parse(text));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-}
+};
