@@ -92,6 +92,38 @@ export default function Blog() {
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
 
   useEffect(function() {
+    if (view === "article" && current) {
+      window.history.pushState({}, "", "/article/" + current.slug);
+      document.title = current.title + " — NaturalWell";
+    } else if (view === "blog") {
+      window.history.pushState({}, "", "/");
+      document.title = "NaturalWell — Home Remedies & Natural Health";
+    } else if (view === "about") {
+      window.history.pushState({}, "", "/about");
+      document.title = "About — NaturalWell";
+    } else if (view === "contact") {
+      window.history.pushState({}, "", "/contact");
+      document.title = "Contact — NaturalWell";
+    } else if (view === "privacy") {
+      window.history.pushState({}, "", "/privacy");
+      document.title = "Privacy Policy — NaturalWell";
+    }
+  }, [view, current]);
+  useEffect(function() {
+    var path = window.location.pathname;
+    if (path.startsWith("/article/")) {
+      var slug = path.replace("/article/", "");
+      var found = articles.find(function(a) { return a.slug === slug; });
+      if (found) { setCurrent(found); setView("article"); }
+    } else if (path === "/about") {
+      setView("about");
+    } else if (path === "/contact") {
+      setView("contact");
+    } else if (path === "/privacy") {
+      setView("privacy");
+    }
+  }, [articles]);
+  useEffect(function() {
     if (view === "generate") fetchFreshTopics();
   }, [view]);
 
