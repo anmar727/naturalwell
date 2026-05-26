@@ -86,9 +86,12 @@ export default function Blog() {
     try {
       var stored = localStorage.getItem("nw_v2_articles");
       var parsed = stored ? JSON.parse(stored) : [];
-      if (parsed.length) setArticles(parsed);
-    } catch(e) {}
-  }, []);
+      var cleaned = parsed.map(function(a) {
+        var t = a.tags;
+        if (typeof t === "string") t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
+        return Object.assign({}, a, { tags: t || [] });
+      });
+      if (cleaned.length) setArticles(cleaned);
 
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
 
@@ -124,7 +127,16 @@ export default function Blog() {
   }, [view]);
 
   function persist(list) {
-    try { localStorage.setItem("nw_v2_articles", JSON.stringify(list)); } catch(e) {}
+    try {
+      var fixed = list.map(function(a) {
+        var t = a.tags;
+        if (typeof t === "string") {
+          t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
+        }
+      return Object.assign({}, a, { tags: t || [] });
+      });
+      localStorage.setItem("nw_v2_articles", JSON.stringify(fixed));
+    } catch(e) {}
   }
 
   function tryUnlock() {
