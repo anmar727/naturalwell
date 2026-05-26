@@ -55,6 +55,7 @@ const TOPIC_KEYWORDS = {
 };
 
 function getImageUrl(article) {
+  if (article.customImage) return article.customImage;
   var keyword = "natural+health+herbs";
   var tags = (article.tags || []).map(function(t) { return t.toLowerCase(); });
   var title = (article.title || "").toLowerCase();
@@ -65,6 +66,51 @@ function getImageUrl(article) {
     }
   }
   return "https://source.unsplash.com/featured/800x500/?" + keyword + "&sig=" + (article.id || "1");
+}
+
+
+function ImageUploader(props) {
+  var onImage = props.onImage;
+  var current = props.current;
+  var inputRef = React.useRef(null);
+
+  function handleFile(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { alert("Image must be under 3MB"); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev) { onImage(ev.target.result); };
+    reader.readAsDataURL(file);
+  }
+
+  return React.createElement("div", { style: { marginBottom: 14 } },
+    React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: ".07em", display: "block", marginBottom: 6 } }, "Article Image (optional)"),
+    current
+      ? React.createElement("div", { style: { position: "relative", marginBottom: 8 } },
+          React.createElement("img", { src: current, alt: "preview", style: { width: "100%", height: 180, objectFit: "cover", borderRadius: 10, display: "block" } }),
+          React.createElement("button", {
+            className: "btn",
+            onClick: function() { onImage(null); },
+            style: { position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,.6)", color: "#fff", borderRadius: 20, padding: "4px 10px", fontSize: 12 }
+          }, "✕ Remove")
+        )
+      : null,
+    React.createElement("div", {
+      onClick: function() { inputRef.current && inputRef.current.click(); },
+      style: { border: "2px dashed #ddd", borderRadius: 10, padding: "20px", textAlign: "center", cursor: "pointer", background: "#fafafa" }
+    },
+      React.createElement("div", { style: { fontSize: 28, marginBottom: 6 } }, "🖼️"),
+      React.createElement("p", { style: { fontSize: 13, color: "#999" } }, current ? "Click to change image" : "Click to upload image"),
+      React.createElement("p", { style: { fontSize: 11, color: "#ccc", marginTop: 4 } }, "JPG, PNG, WebP — max 3MB")
+    ),
+    React.createElement("input", {
+      ref: inputRef,
+      type: "file",
+      accept: "image/*",
+      onChange: handleFile,
+      style: { display: "none" }
+    })
+  );
 }
 
 const callAPI = async function(payload) {
@@ -459,7 +505,11 @@ export default function Blog() {
                 React.createElement("label", { style: { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: ".07em", display: "block", marginBottom: 6 } }, "Read time"),
                 React.createElement("input", { className: "inp", value: data.readTime, onChange: function(e) { setData(function(d) { return Object.assign({}, d, { readTime: e.target.value }); }); }, placeholder: "5 min" })
               )
-            )
+            ),
+            React.createElement(ImageUploader, {
+              current: data.customImage || null,
+              onImage: function(img) { setData(function(d) { return Object.assign({}, d, { customImage: img }); }); }
+            })
           ),
       React.createElement("div", { style: { padding: "16px 24px", borderTop: "1px solid #f0f0f0", display: "flex", gap: 10, justifyContent: "flex-end" } },
         React.createElement("button", { className: "btn", onClick: onCancel, style: { padding: "9px 18px", background: "#f5f5f5", color: "#666", borderRadius: 8, fontSize: 13 } }, "Cancel"),
@@ -562,23 +612,30 @@ export default function Blog() {
               },
               style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: copied ? A : AL, color: copied ? "#fff" : A, border: "1.5px solid " + A + "44", display: "flex", alignItems: "center", gap: 6, transition: "all .2s" }
             }, copied ? "✅ Link Copied!" : "🔗 Copy Link"),
-            React.createElement("a", {
-              href: "https://wa.me/?text=" + encodeURIComponent(current.title + " " + window.location.href),
-              target: "_blank",
-              rel: "noopener noreferrer",
-              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#25D36622", color: "#25D366", border: "1.5px solid #25D36644", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            React.createElement("button", {
+              className: "btn",
+              onClick: function() {
+                var url = SITE.url + "/article/" + current.slug;
+                var text = current.title + " " + url;
+                window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+              },
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#25D36622", color: "#25D366", border: "1.5px solid #25D36644", display: "flex", alignItems: "center", gap: 6 }
             }, "💬 WhatsApp"),
-            React.createElement("a", {
-              href: "https://t.me/share/url?url=" + encodeURIComponent(window.location.href) + "&text=" + encodeURIComponent(current.title),
-              target: "_blank",
-              rel: "noopener noreferrer",
-              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#229ED922", color: "#229ED9", border: "1.5px solid #229ED944", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            React.createElement("button", {
+              className: "btn",
+              onClick: function() {
+                var url = SITE.url + "/article/" + current.slug;
+                window.open("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(current.title), "_blank");
+              },
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#229ED922", color: "#229ED9", border: "1.5px solid #229ED944", display: "flex", alignItems: "center", gap: 6 }
             }, "✈️ Telegram"),
-            React.createElement("a", {
-              href: "https://pinterest.com/pin/create/button/?url=" + encodeURIComponent(window.location.href) + "&description=" + encodeURIComponent(current.title),
-              target: "_blank",
-              rel: "noopener noreferrer",
-              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#E6001922", color: "#E60019", border: "1.5px solid #E6001944", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            React.createElement("button", {
+              className: "btn",
+              onClick: function() {
+                var url = SITE.url + "/article/" + current.slug;
+                window.open("https://pinterest.com/pin/create/button/?url=" + encodeURIComponent(url) + "&description=" + encodeURIComponent(current.title), "_blank");
+              },
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#E6001922", color: "#E60019", border: "1.5px solid #E6001944", display: "flex", alignItems: "center", gap: 6 }
             }, "📌 Pinterest")
           )
         ),
