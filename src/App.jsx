@@ -168,6 +168,8 @@ export default function Blog() {
   var s22 = useState("All"); var activeCategory = s22[0]; var setActiveCategory = s22[1];
   var s23 = useState(""); var searchQuery = s23[0]; var setSearchQuery = s23[1];
   var s24 = useState(false); var copied = s24[0]; var setCopied = s24[1];
+  var s25 = useState(false); var needsMigration = s25[0]; var setNeedsMigration = s25[1];
+  var s26 = useState(false); var migrating = s26[0]; var setMigrating = s26[1];
 
   useEffect(function() {
     fetch("/api/articles")
@@ -185,9 +187,31 @@ export default function Blog() {
             };
           });
           setArticles(mapped);
+        } else {
+          // Supabase empty - fall back to localStorage
+          try {
+            var stored = localStorage.getItem("nw_v2_articles");
+            var parsed = stored ? JSON.parse(stored) : [];
+            var cleaned = parsed.map(function(a) {
+              var t = a.tags;
+              if (typeof t === "string") t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
+              return Object.assign({}, a, { tags: t || [] });
+            });
+            if (cleaned.length) {
+              setArticles(cleaned);
+              setNeedsMigration(true);
+            }
+          } catch(e) {}
         }
       })
-      .catch(function() {});
+      .catch(function() {
+        // Network error - fall back to localStorage
+        try {
+          var stored = localStorage.getItem("nw_v2_articles");
+          var parsed = stored ? JSON.parse(stored) : [];
+          if (parsed.length) setArticles(parsed);
+        } catch(e) {}
+      });
   }, []);
 
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
@@ -255,6 +279,24 @@ export default function Blog() {
         body: JSON.stringify({ id: id }),
       });
     } catch(e) {}
+  }
+
+  async function migrateToSupabase() {
+    setMigrating(true);
+    var migrated = 0;
+    for (var i = 0; i < articles.length; i++) {
+      try {
+        await fetch("/api/articles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(articles[i]),
+        });
+        migrated++;
+      } catch(e) {}
+    }
+    setNeedsMigration(false);
+    setMigrating(false);
+    alert(migrated + " articles migrated to database successfully!");
   }
 
   async function generateSitemap() {
@@ -855,6 +897,18 @@ export default function Blog() {
             React.createElement("p", { style: { fontSize: 12, color: "#aaa" } }, item[1])
           );
         })
+      ),
+      needsMigration && React.createElement("div", { style: { background: "#fff8e1", border: "1px solid #ffc107", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 } },
+        React.createElement("div", null,
+          React.createElement("p", { style: { fontSize: 14, fontWeight: 600, color: "#856404", marginBottom: 4 } }, "⚠️ Articles not yet saved to database"),
+          React.createElement("p", { style: { fontSize: 13, color: "#856404" } }, "Your " + articles.length + " articles are loaded from local storage. Save them to the database so Google can find them.")
+        ),
+        React.createElement("button", {
+          className: "btn",
+          onClick: migrateToSupabase,
+          disabled: migrating,
+          style: { padding: "9px 20px", background: "#ffc107", color: "#1a1a1a", borderRadius: 8, fontWeight: 700, fontSize: 13 }
+        }, migrating ? "Saving..." : "💾 Save All to Database")
       ),
       React.createElement("div", { style: { background: "#fff", border: "1px solid #ece9e0", borderRadius: 14, overflow: "hidden", marginBottom: 20 } },
         React.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 100px 80px 130px", padding: "11px 18px", borderBottom: "1px solid #f5f5f5", fontSize: 11, color: "#aaa", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em" } },
