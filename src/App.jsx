@@ -170,16 +170,24 @@ export default function Blog() {
   var s24 = useState(false); var copied = s24[0]; var setCopied = s24[1];
 
   useEffect(function() {
-    try {
-      var stored = localStorage.getItem("nw_v2_articles");
-      var parsed = stored ? JSON.parse(stored) : [];
-      var cleaned = parsed.map(function(a) {
-        var t = a.tags;
-        if (typeof t === "string") t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
-        return Object.assign({}, a, { tags: t || [] });
-      });
-      if (cleaned.length) setArticles(cleaned);
-    } catch(e) {}
+    fetch("/api/articles")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (Array.isArray(data) && data.length) {
+          var mapped = data.map(function(a) {
+            return {
+              id: a.id, slug: a.slug, title: a.title,
+              excerpt: a.excerpt, content: a.content,
+              tags: Array.isArray(a.tags) ? a.tags : (a.tags || "").split(",").map(function(t) { return t.trim(); }).filter(Boolean),
+              readTime: a.read_time || "5 min",
+              wordCount: a.word_count || 800,
+              date: a.date, customImage: a.custom_image,
+            };
+          });
+          setArticles(mapped);
+        }
+      })
+      .catch(function() {});
   }, []);
 
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
@@ -216,15 +224,36 @@ export default function Blog() {
   }, [view]);
 
   function persist(list) {
+    try { localStorage.setItem("nw_v2_articles_backup", JSON.stringify(list)); } catch(e) {}
+  }
+
+  async function saveToSupabase(article) {
     try {
-      var fixed = list.map(function(a) {
-        var t = a.tags;
-        if (typeof t === "string") {
-          t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
-        }
-        return Object.assign({}, a, { tags: t || [] });
+      await fetch("/api/articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(article),
       });
-      localStorage.setItem("nw_v2_articles", JSON.stringify(fixed));
+    } catch(e) {}
+  }
+
+  async function updateInSupabase(article) {
+    try {
+      await fetch("/api/articles", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(article),
+      });
+    } catch(e) {}
+  }
+
+  async function deleteFromSupabase(id) {
+    try {
+      await fetch("/api/articles", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: id }),
+      });
     } catch(e) {}
   }
 
@@ -315,19 +344,26 @@ export default function Blog() {
     setGenerating(false);
   }
 
-  function publishDraft() {
+  async function publishDraft() {
+    await saveToSupabase(draftArticle);
     var updated = [draftArticle].concat(articles);
     setArticles(updated); persist(updated);
     setDraftArticle(null); setView("admin");
   }
 
-  function saveEdit() {
-    var updated = articles.map(function(a) { return a.id === editingArticle.id ? editingArticle : a; });
+  async function saveEdit() {
+    var cleaned = Object.assign({}, editingArticle, {
+      tags: typeof editingArticle.tags === "string"
+        ? editingArticle.tags.split(",").map(function(t) { return t.trim(); }).filter(Boolean)
+        : editingArticle.tags
+    });
+    await updateInSupabase(cleaned);
+    var updated = articles.map(function(a) { return a.id === cleaned.id ? cleaned : a; });
     setArticles(updated); persist(updated);
     setEditingArticle(null); setView("admin");
   }
 
-  function publishManual() {
+  async function publishManual() {
     if (!manualPost.title.trim() || !manualPost.content.trim()) return;
     var article = {
       id: Date.now().toString(),
@@ -337,14 +373,17 @@ export default function Blog() {
       tags: manualPost.tags.split(",").map(function(t) { return t.trim(); }).filter(Boolean),
       readTime: manualPost.readTime, wordCount: manualPost.content.split(" ").length,
       date: new Date().toISOString().slice(0, 10),
+      customImage: manualPost.customImage || null,
     };
+    await saveToSupabase(article);
     var updated = [article].concat(articles);
     setArticles(updated); persist(updated);
     setManualPost({ title: "", excerpt: "", content: "", tags: "", readTime: "5 min" });
     setView("admin");
   }
 
-  function deleteArticle(id) {
+  async function deleteArticle(id) {
+    await deleteFromSupabase(id);
     var updated = articles.filter(function(a) { return a.id !== id; });
     setArticles(updated); persist(updated);
   }
