@@ -880,12 +880,7 @@ export default function Blog() {
             React.createElement("p", { style: { fontSize: 14, color: "#bbb", textAlign: "center", padding: "40px 0" } }, "Start typing to search articles...")
           )
         : React.createElement("div", null,
-            React.createElement("p", { style: { fontSize: 13, color: "#999", marginBottom: 16 } },
-              (articles || []).filter(function(a) {
-                var q = searchQuery.toLowerCase();
-                return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
-              (articles || []).filter(function(a) { var q = searchQuery.toLowerCase(); return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q); }).length + " results for [" + searchQuery + "]"
-            ),
+            React.createElement("p", { style: { fontSize: 13, color: "#999", marginBottom: 16 } }, filtered.length + " results"),
             (articles || []).filter(function(a) {
               var q = searchQuery.toLowerCase();
               return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
@@ -925,7 +920,7 @@ export default function Blog() {
                     );
                   })
                 )
-          )
+            )
     ),
     React.createElement(Footer, null)
   );
