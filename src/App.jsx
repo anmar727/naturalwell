@@ -81,6 +81,7 @@ export default function Blog() {
   var manualPost = s20[0]; var setManualPost = s20[1];
 
   var s21 = useState("generate"); var adminTab = s21[0]; var setAdminTab = s21[1];
+  var s22 = useState("All"); var activeCategory = s22[0]; var setActiveCategory = s22[1];
 
   useEffect(function() {
     try {
@@ -139,6 +140,25 @@ export default function Blog() {
       });
       localStorage.setItem("nw_v2_articles", JSON.stringify(fixed));
     } catch(e) {}
+  }
+
+  async function generateSitemap() {
+    try {
+      var res = await fetch("/api/sitemap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articles: articles }),
+      });
+      var xml = await res.text();
+      var blob = new Blob([xml], { type: "application/xml" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "sitemap.xml"; a.click();
+      URL.revokeObjectURL(url);
+      alert("sitemap.xml downloaded! Upload it to your GitHub repo root folder, then submit it to Google Search Console.");
+    } catch(e) {
+      alert("Error generating sitemap: " + e.message);
+    }
   }
 
   function tryUnlock() {
@@ -243,10 +263,12 @@ export default function Blog() {
     setArticles(updated); persist(updated);
   }
 
+  var allTags = ["All"].concat([...new Set((articles || []).flatMap(function(a) { return a.tags || []; }))].sort());
+
   var filtered = (articles || []).filter(function(a) {
-    if (!search) return true;
-    var q = search.toLowerCase();
-    return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); });
+    var matchesSearch = !search || a.title.toLowerCase().includes(search.toLowerCase()) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(search.toLowerCase()); });
+    var matchesCategory = activeCategory === "All" || (a.tags || []).some(function(t) { return t.toLowerCase() === activeCategory.toLowerCase(); });
+    return matchesSearch && matchesCategory;
   });
 
   var A = SITE.accent; var AL = SITE.accentLight; var AD = SITE.accentDark;
@@ -414,10 +436,24 @@ export default function Blog() {
       React.createElement("p", { style: { fontSize: 16, color: "#666", maxWidth: 500, margin: "0 auto 24px" } }, "Science-backed natural health tips to help you feel better every day."),
       React.createElement("input", { className: "inp", value: search, onChange: function(e) { setSearch(e.target.value); }, placeholder: "Search articles...", style: { maxWidth: 380, margin: "0 auto", display: "block", borderRadius: 30, padding: "12px 20px", boxShadow: "0 2px 12px rgba(0,0,0,.08)" } })
     ),
+    React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #ece9e0", padding: "12px 20px", overflowX: "auto", whiteSpace: "nowrap" } },
+      React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", display: "flex", gap: 8, alignItems: "center" } },
+        React.createElement("span", { style: { fontSize: 12, color: "#aaa", fontWeight: 600, marginRight: 4, flexShrink: 0 } }, "Browse:"),
+        allTags.map(function(tag) {
+          var isActive = activeCategory === tag;
+          return React.createElement("button", {
+            key: tag,
+            className: "btn",
+            onClick: function() { setActiveCategory(tag); },
+            style: { padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, background: isActive ? A : "transparent", color: isActive ? "#fff" : "#666", border: isActive ? "1.5px solid " + A : "1.5px solid #e5e5e5" }
+          }, tag === "All" ? "🌿 All" : tag);
+        })
+      )
+    ),
     React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", padding: "0 16px 60px" } },
       React.createElement(ADBlock, { slot: "Leaderboard 728x90", h: 90 }),
       filtered.length === 0
-        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, "No articles found.")
+        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, activeCategory !== "All" ? "No articles found in "" + activeCategory + "" category." : "No articles found.")
         : React.createElement("div", { className: "g2", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginTop: 8 } },
             filtered.map(function(a, i) {
               return React.createElement("div", { key: a.id, style: { gridColumn: i === 0 ? "1 / -1" : undefined } },
@@ -616,6 +652,7 @@ export default function Blog() {
         ),
         React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
           React.createElement("button", { className: "btn", onClick: function() { setUnlocked(false); }, style: { padding: "8px 16px", background: "#f5f5f5", color: "#666", borderRadius: 8, fontSize: 13 } }, "Sign out"),
+          React.createElement("button", { className: "btn", onClick: generateSitemap, style: { padding: "8px 16px", background: "#f0fff4", color: "#2d6a4f", borderRadius: 8, fontWeight: 600, fontSize: 13, border: "1px solid #2d6a4f44" } }, "🗺️ Sitemap"),
           React.createElement("button", { className: "btn", onClick: function() { setView("adminManual"); }, style: { padding: "8px 16px", background: "#f0f4ff", color: "#3b5bdb", borderRadius: 8, fontWeight: 600, fontSize: 13 } }, "✍️ Write Manually"),
           React.createElement("button", { className: "btn", onClick: function() { setView("adminGenerate"); }, style: { padding: "8px 18px", background: A, color: "#fff", borderRadius: 8, fontWeight: 600, fontSize: 14 } }, "🤖 Generate Article")
         )
@@ -654,7 +691,7 @@ export default function Blog() {
       ),
       React.createElement("div", { style: { padding: "18px 20px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 12 } },
         React.createElement("p", { style: { fontSize: 14, color: "#92400e", fontWeight: 600, marginBottom: 6 } }, "💰 Google AdSense Setup"),
-        React.createElement("p", { style: { fontSize: 13, color: "#a16207", lineHeight: 1.8 } }, "1. Publish 20+ articles (you have " + articles.length + " so far).\n2. Apply at adsense.google.com.\n3. Replace AD placeholder boxes with your real AdSense tags.")
+        React.createElement("p", { style: { fontSize: 13, color: "#a16207", lineHeight: 1.8 } }, "1. Publish 20+ articles (you have " + articles.length + " so far).\n2. Click the 🗺️ Sitemap button → upload sitemap.xml to GitHub root → submit to search.google.com/search-console.\n3. Apply to adsense.google.com.\n4. Replace AD placeholder boxes with your real AdSense tags.")
       )
     )
   );
