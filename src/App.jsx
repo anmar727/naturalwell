@@ -436,18 +436,26 @@ export default function Blog() {
       React.createElement("p", { style: { fontSize: 16, color: "#666", maxWidth: 500, margin: "0 auto 24px" } }, "Science-backed natural health tips to help you feel better every day."),
       React.createElement("input", { className: "inp", value: search, onChange: function(e) { setSearch(e.target.value); }, placeholder: "Search articles...", style: { maxWidth: 380, margin: "0 auto", display: "block", borderRadius: 30, padding: "12px 20px", boxShadow: "0 2px 12px rgba(0,0,0,.08)" } })
     ),
-    React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #ece9e0", padding: "12px 20px", overflowX: "auto", whiteSpace: "nowrap" } },
-      React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", display: "flex", gap: 8, alignItems: "center" } },
-        React.createElement("span", { style: { fontSize: 12, color: "#aaa", fontWeight: 600, marginRight: 4, flexShrink: 0 } }, "Browse:"),
-        allTags.map(function(tag) {
-          var isActive = activeCategory === tag;
-          return React.createElement("button", {
-            key: tag,
-            className: "btn",
-            onClick: function() { setActiveCategory(tag); },
-            style: { padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0, background: isActive ? A : "transparent", color: isActive ? "#fff" : "#666", border: isActive ? "1.5px solid " + A : "1.5px solid #e5e5e5" }
-          }, tag === "All" ? "🌿 All" : tag);
-        })
+    React.createElement("div", { style: { background: "#fff", borderBottom: "1px solid #ece9e0", padding: "12px 20px" } },
+      React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", gap: 10 } },
+        React.createElement("span", { style: { fontSize: 13, color: "#666", fontWeight: 600, whiteSpace: "nowrap" } }, "Browse by topic:"),
+        React.createElement("div", { style: { position: "relative", flex: 1, maxWidth: 280 } },
+          React.createElement("select", {
+            value: activeCategory,
+            onChange: function(e) { setActiveCategory(e.target.value); },
+            style: { width: "100%", padding: "9px 36px 9px 14px", borderRadius: 9, border: "1.5px solid " + A + "55", background: "#fff", color: "#1a1a1a", fontSize: 13, fontWeight: 500, fontFamily: S, outline: "none", cursor: "pointer", appearance: "none", WebkitAppearance: "none" }
+          },
+            allTags.map(function(tag) {
+              return React.createElement("option", { key: tag, value: tag }, tag === "All" ? "🌿 All Categories" : tag);
+            })
+          ),
+          React.createElement("div", { style: { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: A, fontSize: 12 } }, "▼")
+        ),
+        activeCategory !== "All" && React.createElement("button", {
+          className: "btn",
+          onClick: function() { setActiveCategory("All"); },
+          style: { fontSize: 12, color: "#999", background: "#f5f5f5", padding: "7px 12px", borderRadius: 8 }
+        }, "✕ Clear")
       )
     ),
     React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", padding: "0 16px 60px" } },
