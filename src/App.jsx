@@ -29,6 +29,44 @@ const SAMPLE = [
   { id: "3", slug: "boost-immunity-naturally", title: "10 Proven Ways to Boost Your Immune System Naturally", excerpt: "Strengthen your body's natural defenses with these science-backed lifestyle changes.", content: "## Understanding Immunity\n\nYour immune system is your body's defense network. Support its optimal function through consistent healthy habits.\n\n## 1. Prioritize Quality Sleep\nEven one night of poor sleep reduces immune cell activity by up to 70%.\n\n## 2. Vitamin C Rich Foods\nFocus on bell peppers, citrus fruits, strawberries, and broccoli.\n\n## 3. Elderberry\nElderberry has strong antiviral properties and may reduce cold and flu duration by up to 4 days.\n\n## 4. Vitamin D\nGet 15-20 minutes of sunlight daily or supplement with 1000-2000 IU.\n\n## Conclusion\nSmall consistent habits build a strong immune system over time.\n\n*Disclaimer: These suggestions support general wellness. Consult your healthcare provider for personalized advice.*", tags: ["immunity", "wellness", "natural health"], readTime: "7 min", date: "2025-05-15", wordCount: 760 },
 ];
 
+const TOPIC_KEYWORDS = {
+  "headache": "herbs+medicine+natural",
+  "migraine": "herbs+medicine+natural",
+  "gut health": "vegetables+healthy+food",
+  "digestion": "vegetables+healthy+food",
+  "immunity": "citrus+fruit+vitamin",
+  "immune": "citrus+fruit+vitamin",
+  "sleep": "calm+night+bedroom",
+  "anxiety": "meditation+calm+nature",
+  "stress": "meditation+calm+nature",
+  "skin": "skincare+natural+glow",
+  "herbs": "herbs+plants+green",
+  "turmeric": "turmeric+spice+yellow",
+  "inflammation": "ginger+herbs+spice",
+  "energy": "sunrise+morning+health",
+  "detox": "green+smoothie+healthy",
+  "weight": "healthy+food+salad",
+  "heart": "berries+heart+healthy",
+  "diabetes": "vegetables+healthy+food",
+  "pain": "massage+therapy+natural",
+  "cold": "ginger+lemon+honey",
+  "flu": "ginger+lemon+honey",
+  "remedies": "natural+medicine+herbs",
+};
+
+function getImageUrl(article) {
+  var keyword = "natural+health+herbs";
+  var tags = (article.tags || []).map(function(t) { return t.toLowerCase(); });
+  var title = (article.title || "").toLowerCase();
+  for (var k in TOPIC_KEYWORDS) {
+    if (tags.some(function(t) { return t.includes(k); }) || title.includes(k)) {
+      keyword = TOPIC_KEYWORDS[k];
+      break;
+    }
+  }
+  return "https://source.unsplash.com/featured/800x500/?" + keyword + "&sig=" + (article.id || "1");
+}
+
 const callAPI = async function(payload) {
   var res = await fetch("/api/generate", {
     method: "POST",
@@ -82,6 +120,8 @@ export default function Blog() {
 
   var s21 = useState("generate"); var adminTab = s21[0]; var setAdminTab = s21[1];
   var s22 = useState("All"); var activeCategory = s22[0]; var setActiveCategory = s22[1];
+  var s23 = useState(""); var searchQuery = s23[0]; var setSearchQuery = s23[1];
+  var s24 = useState(false); var copied = s24[0]; var setCopied = s24[1];
 
   useEffect(function() {
     try {
@@ -310,6 +350,7 @@ export default function Blog() {
         [["blog","Blog"],["about","About"],["contact","Contact"],["privacy","Privacy"]].map(function(item) {
           return React.createElement("button", { key: item[0], className: "btn", onClick: function() { setView(item[0]); }, style: { padding: "6px 13px", borderRadius: 22, fontSize: 13, fontWeight: 500, background: view === item[0] ? AL : "transparent", color: view === item[0] ? A : "#666", border: view === item[0] ? "1px solid " + A + "33" : "1px solid transparent" } }, item[1]);
         }),
+        React.createElement("button", { className: "btn", onClick: function() { setSearchQuery(""); setView("search"); }, style: { padding: "6px 13px", borderRadius: 22, fontSize: 13, background: view === "search" ? AL : "transparent", color: view === "search" ? A : "#666", border: view === "search" ? "1px solid " + A + "33" : "1px solid transparent" } }, "🔍"),
         React.createElement("button", { className: "btn", onClick: function() { setView("admin"); }, style: { padding: "6px 13px", borderRadius: 22, fontSize: 13, background: "transparent", color: "#bbb", border: "1px solid transparent" } }, "⚙")
       )
     );
@@ -467,7 +508,14 @@ export default function Blog() {
               return React.createElement("div", { key: a.id, style: { gridColumn: i === 0 ? "1 / -1" : undefined } },
                 i === 2 && React.createElement(ADBlock, { slot: "In-feed 300x250", h: 100 }),
                 React.createElement("div", { className: "card", onClick: function() { setCurrent(a); setView("article"); }, style: { cursor: "pointer", display: "flex", flexDirection: i === 0 ? "row" : "column" } },
-                  React.createElement("div", { style: { background: "linear-gradient(135deg," + A + "18," + A + "38)", minHeight: i === 0 ? 210 : 130, flex: i === 0 ? "0 0 290px" : undefined, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 52 } }, "🌿"),
+                  React.createElement("div", { style: { minHeight: i === 0 ? 210 : 150, flex: i === 0 ? "0 0 290px" : undefined, overflow: "hidden", position: "relative" } },
+                    React.createElement("img", {
+                      src: getImageUrl(a),
+                      alt: a.title,
+                      style: { width: "100%", height: "100%", objectFit: "cover", display: "block", minHeight: i === 0 ? 210 : 150 },
+                      onError: function(e) { e.target.style.display = "none"; e.target.parentNode.style.background = "linear-gradient(135deg," + A + "18," + A + "38)"; }
+                    })
+                  ),
                   React.createElement("div", { style: { padding: 20 } },
                     React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 10, flexWrap: "wrap" } }, (a.tags || []).slice(0,2).map(function(t) { return React.createElement("span", { key: t, className: "tag" }, t); })),
                     React.createElement("h2", { style: { fontFamily: F, fontSize: i === 0 ? 22 : 16, color: "#111", marginBottom: 10, lineHeight: 1.32 } }, a.title),
@@ -500,9 +548,47 @@ export default function Blog() {
         ),
         React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" } }, (current.tags || []).map(function(t) { return React.createElement("span", { key: t, className: "tag" }, t); })),
         React.createElement("h1", { style: { fontFamily: F, fontSize: 30, color: "#111", lineHeight: 1.28, marginBottom: 14 } }, current.title),
-        React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, flexWrap: "wrap", gap: 10 } },
-          React.createElement("p", { style: { fontSize: 13, color: "#bbb" } }, current.date + " · " + current.readTime + " read · " + current.wordCount + " words"),
-          React.createElement("button", { className: "btn", onClick: function() { shareArticle(current); }, style: { fontSize: 13, color: A, background: AL, border: "1px solid " + A + "33", padding: "6px 14px", borderRadius: 20, fontWeight: 500 } }, "Share 🔗")
+        React.createElement("div", { style: { marginBottom: 24 } },
+          React.createElement("p", { style: { fontSize: 13, color: "#bbb", marginBottom: 14 } }, current.date + " · " + current.readTime + " read · " + current.wordCount + " words"),
+          React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
+            React.createElement("button", {
+              className: "btn",
+              onClick: function() {
+                var url = window.location.href;
+                navigator.clipboard.writeText(url).then(function() {
+                  setCopied(true);
+                  setTimeout(function() { setCopied(false); }, 2500);
+                });
+              },
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: copied ? A : AL, color: copied ? "#fff" : A, border: "1.5px solid " + A + "44", display: "flex", alignItems: "center", gap: 6, transition: "all .2s" }
+            }, copied ? "✅ Link Copied!" : "🔗 Copy Link"),
+            React.createElement("a", {
+              href: "https://wa.me/?text=" + encodeURIComponent(current.title + " " + window.location.href),
+              target: "_blank",
+              rel: "noopener noreferrer",
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#25D36622", color: "#25D366", border: "1.5px solid #25D36644", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            }, "💬 WhatsApp"),
+            React.createElement("a", {
+              href: "https://t.me/share/url?url=" + encodeURIComponent(window.location.href) + "&text=" + encodeURIComponent(current.title),
+              target: "_blank",
+              rel: "noopener noreferrer",
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#229ED922", color: "#229ED9", border: "1.5px solid #229ED944", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            }, "✈️ Telegram"),
+            React.createElement("a", {
+              href: "https://pinterest.com/pin/create/button/?url=" + encodeURIComponent(window.location.href) + "&description=" + encodeURIComponent(current.title),
+              target: "_blank",
+              rel: "noopener noreferrer",
+              style: { fontSize: 13, fontWeight: 600, padding: "8px 16px", borderRadius: 22, background: "#E6001922", color: "#E60019", border: "1.5px solid #E6001944", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }
+            }, "📌 Pinterest")
+          )
+        ),
+        React.createElement("div", { style: { borderRadius: 14, overflow: "hidden", marginBottom: 28, maxHeight: 380 } },
+          React.createElement("img", {
+            src: getImageUrl(current),
+            alt: current.title,
+            style: { width: "100%", height: 340, objectFit: "cover", display: "block" },
+            onError: function(e) { e.target.parentNode.style.display = "none"; }
+          })
         ),
         React.createElement(ADBlock, { slot: "Article Top 728x90", h: 90 }),
         React.createElement("div", { className: "prose" }, renderMd(current.content)),
@@ -758,6 +844,90 @@ export default function Blog() {
         showPreview: true,
       })
     )
+  );
+
+  // ── SEARCH PAGE ──
+  if (view === "search") return React.createElement("div", null,
+    React.createElement("style", null, css), React.createElement(Nav, null),
+    React.createElement("div", { style: { maxWidth: 860, margin: "0 auto", padding: "40px 20px 80px" } },
+      React.createElement("div", { style: { marginBottom: 28 } },
+        React.createElement("h1", { style: { fontFamily: F, fontSize: 26, color: "#111", marginBottom: 8 } }, "Search Articles"),
+        React.createElement("p", { style: { fontSize: 14, color: "#999" } }, articles.length + " articles available")
+      ),
+      React.createElement("div", { style: { position: "relative", marginBottom: 28 } },
+        React.createElement("input", {
+          className: "inp",
+          value: searchQuery,
+          onChange: function(e) { setSearchQuery(e.target.value); },
+          placeholder: "Search by title, topic, or keyword...",
+          autoFocus: true,
+          style: { padding: "14px 48px 14px 20px", fontSize: 16, borderRadius: 14, boxShadow: "0 2px 16px rgba(0,0,0,.08)" }
+        }),
+        React.createElement("span", { style: { position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", fontSize: 18, color: "#ccc", pointerEvents: "none" } }, "🔍")
+      ),
+      searchQuery.trim() === ""
+        ? React.createElement("div", null,
+            React.createElement("p", { style: { fontSize: 13, color: "#aaa", marginBottom: 20 } }, "Popular topics:"),
+            React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 32 } },
+              [...new Set((articles || []).flatMap(function(a) { return a.tags || []; }))].slice(0, 12).map(function(tag) {
+                return React.createElement("button", {
+                  key: tag, className: "btn",
+                  onClick: function() { setSearchQuery(tag); },
+                  style: { padding: "6px 14px", borderRadius: 20, background: AL, color: A, fontSize: 13, fontWeight: 500 }
+                }, tag);
+              })
+            ),
+            React.createElement("p", { style: { fontSize: 14, color: "#bbb", textAlign: "center", padding: "40px 0" } }, "Start typing to search articles...")
+          )
+        : React.createElement("div", null,
+            React.createElement("p", { style: { fontSize: 13, color: "#999", marginBottom: 16 } },
+              (articles || []).filter(function(a) {
+                var q = searchQuery.toLowerCase();
+                return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
+              }).length + " results for "" + searchQuery + """
+            ),
+            (articles || []).filter(function(a) {
+              var q = searchQuery.toLowerCase();
+              return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
+            }).length === 0
+              ? React.createElement("div", { style: { textAlign: "center", padding: "60px 0" } },
+                  React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "🔍"),
+                  React.createElement("p", { style: { fontSize: 16, color: "#999", marginBottom: 8 } }, "No articles found for "" + searchQuery + """),
+                  React.createElement("p", { style: { fontSize: 13, color: "#ccc" } }, "Try a different keyword or browse all articles")
+                )
+              : React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } },
+                  (articles || []).filter(function(a) {
+                    var q = searchQuery.toLowerCase();
+                    return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
+                  }).map(function(a) {
+                    return React.createElement("div", {
+                      key: a.id,
+                      className: "card",
+                      onClick: function() { setCurrent(a); setView("article"); },
+                      style: { cursor: "pointer", display: "flex", gap: 0, overflow: "hidden" }
+                    },
+                      React.createElement("div", { style: { width: 120, minHeight: 110, flexShrink: 0, overflow: "hidden" } },
+                        React.createElement("img", {
+                          src: getImageUrl(a),
+                          alt: a.title,
+                          style: { width: "100%", height: "100%", objectFit: "cover" },
+                          onError: function(e) { e.target.parentNode.style.background = "linear-gradient(135deg," + A + "18," + A + "38)"; e.target.style.display = "none"; }
+                        })
+                      ),
+                      React.createElement("div", { style: { padding: "14px 16px", flex: 1 } },
+                        React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap" } },
+                          (a.tags || []).slice(0,2).map(function(t) { return React.createElement("span", { key: t, className: "tag" }, t); })
+                        ),
+                        React.createElement("h3", { style: { fontFamily: F, fontSize: 15, color: "#111", marginBottom: 6, lineHeight: 1.35 } }, a.title),
+                        React.createElement("p", { style: { fontSize: 13, color: "#888", lineHeight: 1.6, marginBottom: 8 } }, a.excerpt),
+                        React.createElement("span", { style: { fontSize: 11, color: "#bbb" } }, a.date + " · " + a.readTime + " read")
+                      )
+                    );
+                  })
+                )
+          )
+    ),
+    React.createElement(Footer, null)
   );
 
   return null;
