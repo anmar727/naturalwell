@@ -92,6 +92,8 @@ export default function Blog() {
         return Object.assign({}, a, { tags: t || [] });
       });
       if (cleaned.length) setArticles(cleaned);
+    } catch(e) {}
+  }, []);
 
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
 
@@ -133,7 +135,7 @@ export default function Blog() {
         if (typeof t === "string") {
           t = t.split(",").map(function(x) { return x.trim(); }).filter(Boolean);
         }
-      return Object.assign({}, a, { tags: t || [] });
+        return Object.assign({}, a, { tags: t || [] });
       });
       localStorage.setItem("nw_v2_articles", JSON.stringify(fixed));
     } catch(e) {}
