@@ -453,7 +453,7 @@ export default function Blog() {
     React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", padding: "0 16px 60px" } },
       React.createElement(ADBlock, { slot: "Leaderboard 728x90", h: 90 }),
       filtered.length === 0
-        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, activeCategory !== "All" ? "No articles found in "" + activeCategory + "" category." : "No articles found.")
+        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, activeCategory !== "All" ? "No articles in this category." : "No articles found.")
         : React.createElement("div", { className: "g2", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginTop: 8 } },
             filtered.map(function(a, i) {
               return React.createElement("div", { key: a.id, style: { gridColumn: i === 0 ? "1 / -1" : undefined } },
