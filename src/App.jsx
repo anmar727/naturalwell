@@ -884,7 +884,7 @@ export default function Blog() {
               (articles || []).filter(function(a) {
                 var q = searchQuery.toLowerCase();
                 return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q);
-              }).length + " results for "" + searchQuery + """
+              (articles || []).filter(function(a) { var q = searchQuery.toLowerCase(); return a.title.toLowerCase().includes(q) || (a.tags || []).some(function(t) { return t.toLowerCase().includes(q); }) || (a.excerpt || "").toLowerCase().includes(q); }).length + " results for [" + searchQuery + "]"
             ),
             (articles || []).filter(function(a) {
               var q = searchQuery.toLowerCase();
@@ -892,7 +892,7 @@ export default function Blog() {
             }).length === 0
               ? React.createElement("div", { style: { textAlign: "center", padding: "60px 0" } },
                   React.createElement("div", { style: { fontSize: 48, marginBottom: 16 } }, "🔍"),
-                  React.createElement("p", { style: { fontSize: 16, color: "#999", marginBottom: 8 } }, "No articles found for "" + searchQuery + """),
+                  React.createElement("p", { style: { fontSize: 16, color: "#999", marginBottom: 8 } }, "No articles found for: " + searchQuery),
                   React.createElement("p", { style: { fontSize: 13, color: "#ccc" } }, "Try a different keyword or browse all articles")
                 )
               : React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 14 } },
