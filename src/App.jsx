@@ -173,7 +173,14 @@ const ADBlock = function(props) {
 };
 
 export default function Blog() {
-  var s1 = useState("blog"); var view = s1[0]; var setView = s1[1];
+  var s1 = useState(function() {
+    var p = window.location.pathname;
+    if (p.startsWith("/article/")) return "articleLoading";
+    if (p === "/about") return "about";
+    if (p === "/contact") return "contact";
+    if (p === "/privacy") return "privacy";
+    return "blog";
+  }); var view = s1[0]; var setView = s1[1];
   var s2 = useState([]); var articles = s2[0]; var setArticles = s2[1];
   var s3 = useState(null); var current = s3[0]; var setCurrent = s3[1];
   var s4 = useState(""); var topic = s4[0]; var setTopic = s4[1];
@@ -256,32 +263,46 @@ export default function Blog() {
 
   useEffect(function() { window.scrollTo(0, 0); }, [view]);
 
+  function go(path) {
+    if (window.location.pathname !== path) window.history.pushState({}, "", path);
+  }
+
   useEffect(function() {
     if (view === "article" && current) {
-      window.history.pushState({}, "", "/article/" + current.slug);
+      go("/article/" + current.slug);
       document.title = current.title + " — NaturalWell";
     } else if (view === "blog") {
-      window.history.pushState({}, "", "/");
+      go("/");
       document.title = "NaturalWell — Home Remedies & Natural Health";
     } else if (view === "about") {
-      window.history.pushState({}, "", "/about");
+      go("/about");
     } else if (view === "contact") {
-      window.history.pushState({}, "", "/contact");
+      go("/contact");
     } else if (view === "privacy") {
-      window.history.pushState({}, "", "/privacy");
+      go("/privacy");
     }
   }, [view, current]);
 
+  // Opening an article link directly: wait for articles, then show it.
   useEffect(function() {
-    var path = window.location.pathname;
-    if (path.startsWith("/article/")) {
-      var slug = path.replace("/article/", "");
-      var found = articles.find(function(a) { return a.slug === slug; });
-      if (found) { setCurrent(found); setView("article"); }
-    } else if (path === "/about") { setView("about"); }
-    else if (path === "/contact") { setView("contact"); }
-    else if (path === "/privacy") { setView("privacy"); }
-  }, [articles]);
+    if (view !== "articleLoading" || loadingArticles) return;
+    var slug = decodeURIComponent(window.location.pathname.replace("/article/", "").replace(/\/$/, ""));
+    var found = articles.find(function(a) { return a.slug === slug; });
+    if (found) { setCurrent(found); setView("article"); }
+    else setView("blog");
+  }, [articles, loadingArticles, view]);
+
+  // Back/forward buttons
+  useEffect(function() {
+    function onPop() {
+      var p = window.location.pathname;
+      if (p.startsWith("/article/")) setView("articleLoading");
+      else if (p === "/about" || p === "/contact" || p === "/privacy") setView(p.slice(1));
+      else setView("blog");
+    }
+    window.addEventListener("popstate", onPop);
+    return function() { window.removeEventListener("popstate", onPop); };
+  }, []);
 
   useEffect(function() {
     if (view === "adminGenerate") fetchFreshTopics();
@@ -647,6 +668,11 @@ export default function Blog() {
   }
 
   // ── BLOG ──
+  if (view === "articleLoading") return React.createElement("div", null,
+    React.createElement("style", null, css), React.createElement(Nav, null),
+    React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 80 } }, "Loading article…")
+  );
+
   if (view === "blog") return React.createElement("div", null,
     React.createElement("style", null, css), React.createElement(Nav, null),
     React.createElement("div", { style: { background: "linear-gradient(135deg," + A + "08," + A + "14)", borderBottom: "1px solid " + A + "22", padding: "48px 20px", textAlign: "center" } },
