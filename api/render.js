@@ -1,187 +1,143 @@
-// Serves every page with its real content already in the HTML, so Google and
-// AdSense reviewers can read articles without running JavaScript. The React
-// app then loads on top and takes over as before.
+// Renders every public page on the server with the same React views the
+// browser uses, so search engines and AdSense reviewers see full content
+// without running JavaScript. The browser then "hydrates" the page.
+import React from "react";
+import ReactDOMServer from "react-dom/server";
+import { App, route, titleFor } from "../src/views/App.js";
+import { SITE, AUTHOR, PAGES, categoryBySlug } from "../shared/site.js";
+import { normalizeArticle, toMeta } from "../shared/articles.js";
+import { escapeHtml } from "../shared/markdown.js";
+import { listArticles } from "./_lib/db.js";
 
-var SUPABASE_URL = process.env.SUPABASE_URL;
-var SUPABASE_KEY = process.env.SUPABASE_KEY;
-var BASE = "https://www.naturalwellblog.com";
-
-var AUTHOR = {
-  name: "Anmar Arab",
-  role: "Dentist · Postgraduate training in orthodontics",
-  bio: "Anmar is a dental professional based in Muscat, Oman, with postgraduate training in orthodontics. He writes NaturalWell to share clear, practical information about everyday home remedies, what the research says about them, and when it is time to see a doctor instead.",
-};
-
-// The page shell (same as index.html, pointing at the built app bundle).
 var VERSION = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "1";
-var SHELL = '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
-  '<meta charset="UTF-8" />\n<meta name="viewport" content="width=device-width, initial-scale=1.0" />\n' +
-  '<meta name="robots" content="index, follow" />\n<meta name="twitter:card" content="summary_large_image" />\n' +
-  '<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🌿</text></svg>" />\n' +
-  '<link rel="preconnect" href="https://fonts.googleapis.com" />\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />\n' +
-  '<script type="module" crossorigin src="/assets/app.js?v=' + VERSION + '"></script>\n' +
-  '</head>\n<body>\n<div id="root"></div>\n</body>\n</html>\n';
+var FONTS = "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;0,6..72,700;1,6..72,400&family=Public+Sans:wght@400;600;700&display=swap";
 
-function esc(s) {
-  return String(s == null ? "" : s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+function description(r, data) {
+  if (r.name === "article" && data.article) return data.article.excerpt;
+  if (r.name === "topic") { var c = categoryBySlug(r.slug); if (c) return c.intro.slice(0, 155).replace(/\s+\S*$/, "") + "…"; }
+  if (r.name === "page") return PAGES[r.page].description;
+  if (r.name === "topics") return "Browse NaturalWell's evidence-checked home remedy guides by topic: sleep, digestion, colds, heart health and everyday wellness.";
+  if (r.name === "contact") return "Contact NaturalWell with questions, corrections or topic suggestions.";
+  return "Evidence-checked guides to home remedies: what the research shows, how to use them safely, and when to see a doctor instead.";
 }
 
-function inline(s) {
-  return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
+function canonicalPath(r, url) {
+  if (r.name === "home") return "/";
+  if (r.name === "search") return "/search";
+  return url.split("?")[0].replace(/\/+$/, "") || "/";
 }
 
-function mdToHtml(md) {
-  var out = [];
-  var list = null;
-  function closeList() { if (list) { out.push("</" + list + ">"); list = null; } }
-  (md || "").split("\n").forEach(function(line) {
-    var t = line.trim();
-    if (!t) { closeList(); return; }
-    if (t.startsWith("### ")) { closeList(); out.push("<h3>" + inline(t.slice(4)) + "</h3>"); return; }
-    if (t.startsWith("## ")) { closeList(); out.push("<h2>" + inline(t.slice(3)) + "</h2>"); return; }
-    if (/^\d+\. /.test(t)) {
-      if (list !== "ol") { closeList(); out.push("<ol>"); list = "ol"; }
-      out.push("<li>" + inline(t.replace(/^\d+\. /, "")) + "</li>"); return;
-    }
-    if (t.startsWith("- ")) {
-      if (list !== "ul") { closeList(); out.push("<ul>"); list = "ul"; }
-      out.push("<li>" + inline(t.slice(2)) + "</li>"); return;
-    }
-    closeList();
-    out.push("<p>" + inline(t) + "</p>");
+function jsonLd(r, data, canonical) {
+  var items = [];
+  if (r.name === "home") {
+    items.push({ "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, url: SITE.url + "/", potentialAction: { "@type": "SearchAction", target: SITE.url + "/search?q={search_term_string}", "query-input": "required name=search_term_string" } });
+  }
+  if (r.name === "article" && data.article) {
+    var a = data.article;
+    var c = categoryBySlug(a.category);
+    items.push({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: a.title,
+      description: a.excerpt,
+      datePublished: a.date,
+      dateModified: a.updated || a.date,
+      image: a.image && a.image.indexOf("/") === 0 ? SITE.url + a.image : undefined,
+      mainEntityOfPage: canonical,
+      author: { "@type": "Person", name: AUTHOR.name, url: SITE.url + "/about", jobTitle: "Dentist" },
+      publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
+    });
+    items.push({
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: SITE.url + "/" },
+        c ? { "@type": "ListItem", position: 2, name: c.name, item: SITE.url + "/topics/" + c.slug } : null,
+        { "@type": "ListItem", position: c ? 3 : 2, name: a.title, item: canonical },
+      ].filter(Boolean),
+    });
+  }
+  return items.map(function (x) { return '<script type="application/ld+json">' + JSON.stringify(x).replace(/</g, "\\u003c") + "</script>"; }).join("\n");
+}
+
+function documentHtml(opts) {
+  return '<!DOCTYPE html>\n<html lang="en">\n<head>\n' +
+    '<meta charset="UTF-8" />\n<meta name="viewport" content="width=device-width, initial-scale=1" />\n' +
+    "<title>" + escapeHtml(opts.title) + "</title>\n" +
+    '<meta name="description" content="' + escapeHtml(opts.description) + '" />\n' +
+    (opts.noindex ? '<meta name="robots" content="noindex" />\n' : '<meta name="robots" content="index, follow, max-image-preview:large" />\n') +
+    '<link rel="canonical" href="' + escapeHtml(opts.canonical) + '" />\n' +
+    '<meta property="og:site_name" content="' + SITE.name + '" />\n' +
+    '<meta property="og:title" content="' + escapeHtml(opts.title) + '" />\n' +
+    '<meta property="og:description" content="' + escapeHtml(opts.description) + '" />\n' +
+    '<meta property="og:url" content="' + escapeHtml(opts.canonical) + '" />\n' +
+    '<meta property="og:type" content="' + (opts.isArticle ? "article" : "website") + '" />\n' +
+    (opts.image ? '<meta property="og:image" content="' + escapeHtml(opts.image) + '" />\n' : "") +
+    '<meta name="twitter:card" content="' + (opts.image ? "summary_large_image" : "summary") + '" />\n' +
+    '<meta name="theme-color" content="#214d39" />\n' +
+    "<link rel=\"icon\" href=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>\" />\n" +
+    '<link rel="preconnect" href="https://fonts.googleapis.com" />\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />\n' +
+    '<link rel="stylesheet" href="' + FONTS + '" />\n' +
+    '<link rel="stylesheet" href="/assets/index.css?v=' + VERSION + '" />\n' +
+    (opts.jsonLd || "") + "\n" +
+    '<script type="module" crossorigin src="/assets/app.js?v=' + VERSION + '"></script>\n' +
+    "</head>\n<body>\n" +
+    '<div id="root">' + (opts.body || "") + "</div>\n" +
+    (opts.data ? '<script id="nw-data" type="application/json">' + JSON.stringify(opts.data).replace(/</g, "\\u003c") + "</script>\n" : "") +
+    "</body>\n</html>\n";
+}
+
+export default async function handler(req, res) {
+  var q = req.query || {};
+  var path = "/" + String(q.path || "").replace(/^\/+/, "");
+  var search = "";
+  Object.keys(q).forEach(function (k) {
+    if (k === "path") return;
+    search += (search ? "&" : "?") + encodeURIComponent(k) + "=" + encodeURIComponent(q[k]);
   });
-  closeList();
-  return out.join("\n");
-}
-
-async function getArticles() {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return [];
-  var r = await fetch(SUPABASE_URL + "/rest/v1/articles?select=id,slug,title,excerpt,content,tags,date,read_time,custom_image&order=created_at.desc", {
-    headers: { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY },
-  });
-  var data = await r.json();
-  return Array.isArray(data) ? data : [];
-}
-
-function imageFor(a) {
-  var img = a.custom_image || "";
-  if (img.startsWith("data:")) return null; // never inline huge base64 images
-  if (img.startsWith("/")) return BASE + img;
-  return img || null;
-}
-
-function authorHtml() {
-  return '<aside class="ssr-author"><p class="ssr-k">Written by</p><p><strong>' + esc(AUTHOR.name) + "</strong></p><p>" + esc(AUTHOR.role) + "</p><p>" + esc(AUTHOR.bio) + "</p></aside>";
-}
-
-var STYLE = "<style>.ssr{max-width:760px;margin:0 auto;padding:32px 20px;font-family:Georgia,serif;color:#222;line-height:1.8}.ssr h1{font-size:30px;line-height:1.3}.ssr h2{margin-top:28px}.ssr a{color:#2d6a4f}.ssr-author{border:1px solid #ece9e0;border-radius:12px;padding:16px;margin-top:28px}.ssr-k{font-size:12px;text-transform:uppercase;color:#888}.ssr li{margin-bottom:6px}</style>";
-
-function page(shell, opts) {
-  var head = "<title>" + esc(opts.title) + "</title>" +
-    '\n<meta name="description" content="' + esc(opts.description) + '" />' +
-    '\n<link rel="canonical" href="' + esc(opts.url) + '" />' +
-    '\n<meta property="og:title" content="' + esc(opts.title) + '" />' +
-    '\n<meta property="og:description" content="' + esc(opts.description) + '" />' +
-    '\n<meta property="og:url" content="' + esc(opts.url) + '" />' +
-    '\n<meta property="og:type" content="' + (opts.type || "website") + '" />' +
-    (opts.image ? '\n<meta property="og:image" content="' + esc(opts.image) + '" />\n<meta name="twitter:image" content="' + esc(opts.image) + '" />' : "") +
-    (opts.jsonLd ? '\n<script type="application/ld+json">' + JSON.stringify(opts.jsonLd).replace(/</g, "\\u003c") + "</script>" : "") +
-    "\n" + STYLE;
-
-  var html = shell
-    // drop the shell's generic tags that we replace per page
-    .replace(/<title>[\s\S]*?<\/title>/i, "")
-    .replace(/<meta\s+name="description"[^>]*>/i, "")
-    .replace(/<meta\s+property="og:(title|description|url|type|image)"[^>]*>/gi, "")
-    .replace(/<meta\s+name="twitter:image"[^>]*>/i, "")
-    .replace("</head>", head + "\n</head>")
-    .replace('<div id="root"></div>', '<div id="root"><main class="ssr">' + opts.body + "</main></div>");
-  return html;
-}
-
-function homeBody(articles) {
-  var items = articles.map(function(a) {
-    return '<li><h2><a href="/article/' + esc(a.slug) + '">' + esc(a.title) + "</a></h2><p>" + esc(a.excerpt) + "</p><p><small>" + esc(a.date) + " · " + esc(a.read_time || "5 min") + " read</small></p></li>";
-  }).join("\n");
-  return "<h1>Home Remedies That Actually Work</h1><p>Science-backed natural health tips to help you feel better every day, written by " + esc(AUTHOR.name) + ".</p><ul>" + items + "</ul>" +
-    '<nav><a href="/about">About</a> · <a href="/contact">Contact</a> · <a href="/privacy">Privacy Policy</a></nav>';
-}
-
-function articleBody(a, articles) {
-  var tags = (a.tags || "").split(",").map(function(t) { return t.trim(); }).filter(Boolean);
-  var related = articles.filter(function(x) { return x.slug !== a.slug; }).slice(0, 3);
-  return '<nav><a href="/">Blog</a> › ' + esc(tags[0] || "Article") + "</nav>" +
-    "<h1>" + esc(a.title) + "</h1>" +
-    "<p><small>By " + esc(AUTHOR.name) + " · " + esc(a.date) + " · " + esc(a.read_time || "5 min") + " read</small></p>" +
-    "<article>" + mdToHtml(a.content) + "</article>" +
-    authorHtml() +
-    (related.length ? "<h2>Related articles</h2><ul>" + related.map(function(r) { return '<li><a href="/article/' + esc(r.slug) + '">' + esc(r.title) + "</a></li>"; }).join("") + "</ul>" : "");
-}
-
-var STATIC = {
-  "/about": { title: "About NaturalWell", description: "Who writes NaturalWell and how we approach natural health information.", body: "<h1>About NaturalWell</h1><p>NaturalWell shares practical, research-informed information about everyday home remedies, including their limits and when to see a doctor.</p>" + authorHtml() },
-  "/contact": { title: "Contact NaturalWell", description: "Get in touch with NaturalWell.", body: "<h1>Contact Us</h1><p>Email: <a href=\"mailto:anmar727@gmail.com\">anmar727@gmail.com</a></p>" },
-  "/privacy": { title: "Privacy Policy — NaturalWell", description: "NaturalWell privacy policy.", body: "<h1>Privacy Policy</h1><p>We collect information you send us by email and automated data via Google Analytics and advertising partners. We never sell your data. All content is informational only; always consult a healthcare professional.</p>" },
-};
-
-module.exports = async function handler(req, res) {
-  var path = (req.query && req.query.path ? "/" + req.query.path : "/").replace(/\/+$/, "") || "/";
-
-  var shell = SHELL;
+  var url = (path.length > 1 ? path.replace(/\/+$/, "") : path) + search;
+  var r = route(url);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=86400");
 
-  try {
-    if (path === "/") {
-      var all = await getArticles();
-      return res.status(200).send(page(shell, {
-        title: "NaturalWell — Home Remedies & Natural Health",
-        description: "Science-backed home remedies and natural health tips to help you live better every day.",
-        url: BASE + "/",
-        body: homeBody(all),
-      }));
-    }
-
-    if (path.startsWith("/article/")) {
-      var slug = decodeURIComponent(path.slice("/article/".length));
-      var list = await getArticles();
-      var a = list.find(function(x) { return x.slug === slug; });
-      if (!a) return res.status(404).send(page(shell, { title: "Article not found — NaturalWell", description: "This article could not be found.", url: BASE + path, body: '<h1>Article not found</h1><p><a href="/">Back to all articles</a></p>' }));
-      var url = BASE + "/article/" + a.slug;
-      var image = imageFor(a);
-      return res.status(200).send(page(shell, {
-        title: a.title + " — NaturalWell",
-        description: a.excerpt,
-        url: url,
-        type: "article",
-        image: image,
-        body: articleBody(a, list),
-        jsonLd: {
-          "@context": "https://schema.org",
-          "@type": "Article",
-          headline: a.title,
-          description: a.excerpt,
-          datePublished: a.date,
-          image: image || undefined,
-          mainEntityOfPage: url,
-          author: { "@type": "Person", name: AUTHOR.name, description: AUTHOR.role },
-          publisher: { "@type": "Organization", name: "NaturalWell", url: BASE },
-        },
-      }));
-    }
-
-    if (STATIC[path]) {
-      var p = STATIC[path];
-      return res.status(200).send(page(shell, { title: p.title, description: p.description, url: BASE + path, body: p.body }));
-    }
-  } catch (e) {
-    // Database trouble: fall back to the plain app shell so the site still works.
-    return res.status(200).send(shell);
+  if (r.name === "admin") {
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).send(documentHtml({ title: "Admin | NaturalWell", description: "", canonical: SITE.url + "/admin", noindex: true }));
   }
 
-  // Admin and any other app screens: plain shell, not indexed.
-  return res.status(200).send(shell.replace("</head>", '<meta name="robots" content="noindex" />\n</head>'));
-};
+  var all = [];
+  try { all = (await listArticles()).map(normalizeArticle); } catch (e) { all = []; }
+  var data = { articles: all.map(toMeta), article: null };
+  var status = 200;
+
+  if (r.name === "article") {
+    data.article = all.find(function (a) { return a.slug === r.slug; }) || null;
+    if (!data.article) { status = 404; data.article = { missing: r.slug }; }
+  }
+  if (r.name === "topic" && !categoryBySlug(r.slug)) status = 404;
+  if (r.name === "notfound") status = 404;
+
+  var body = "";
+  try {
+    body = ReactDOMServer.renderToString(React.createElement(App, { url: url, data: data }));
+  } catch (e) {
+    console.error("render failed", e);
+    body = "";
+  }
+  var canonical = SITE.url + canonicalPath(r, url);
+  var art = r.name === "article" && data.article && !data.article.missing ? data.article : null;
+  var html = documentHtml({
+    title: titleFor(r, { article: art }),
+    description: description(r, { article: art }),
+    canonical: canonical,
+    noindex: status !== 200 || r.name === "search",
+    isArticle: !!art,
+    image: art && art.image && art.image.indexOf("/") === 0 ? SITE.url + art.image : null,
+    jsonLd: jsonLd(r, { article: art }, canonical),
+    body: body,
+    data: body ? data : null,
+  });
+
+  res.setHeader("Cache-Control", status === 200 ? "public, s-maxage=300, stale-while-revalidate=86400" : "public, s-maxage=60");
+  return res.status(status).send(html);
+}
