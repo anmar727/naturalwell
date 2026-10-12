@@ -121,7 +121,8 @@ export function Meta(props) {
   var a = props.article;
   var c = categoryBySlug(a.category);
   return h("div", { className: "meta" },
-    props.showTopic && c ? h(Link, { to: "/topics/" + c.slug, className: "topic-link" }, c.name) : null,
+    // Plain text: Meta sits inside article card links, and links can't be nested.
+    props.showTopic && c ? h("span", { className: "topic-link" }, c.name) : null,
     h("span", null, a.readTime + " read"),
     h(LevelPill, { level: a.evidenceLevel })
   );
