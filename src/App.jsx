@@ -13,6 +13,24 @@ const SITE = {
   adminPassword: "NaturalWell2025!",
 };
 
+const AUTHOR = {
+  name: "Anmar Arab",
+  role: "Dentist · Postgraduate training in orthodontics",
+  bio: "Anmar is a dental professional based in Muscat, Oman, with postgraduate training in orthodontics. He writes NaturalWell to share clear, practical information about everyday home remedies, what the research says about them, and when it is time to see a doctor instead.",
+};
+
+function AuthorBox() {
+  return React.createElement("div", { style: { display: "flex", gap: 16, alignItems: "flex-start", background: "#fff", border: "1px solid #ece9e0", borderRadius: 14, padding: "20px 22px", marginTop: 32 } },
+    React.createElement("div", { style: { width: 52, height: 52, borderRadius: "50%", background: "#2d6a4f", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, flexShrink: 0 } }, "AA"),
+    React.createElement("div", null,
+      React.createElement("p", { style: { fontSize: 11, fontWeight: 700, color: "#999", textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 4 } }, "Written by"),
+      React.createElement("p", { style: { fontSize: 16, fontWeight: 700, color: "#111", marginBottom: 2 } }, AUTHOR.name),
+      React.createElement("p", { style: { fontSize: 13, color: "#2d6a4f", fontWeight: 600, marginBottom: 8 } }, AUTHOR.role),
+      React.createElement("p", { style: { fontSize: 14, color: "#555", lineHeight: 1.7 } }, AUTHOR.bio)
+    )
+  );
+}
+
 const FALLBACK_TOPICS = [
   "Better sleep naturally","Boost immunity naturally","Natural anxiety relief",
   "Apple cider vinegar benefits","Anti-inflammatory foods","Natural remedies for bloating",
@@ -23,11 +41,6 @@ const FALLBACK_TOPICS = [
   "Home remedies for acid reflux","Natural ways to lower blood pressure",
 ];
 
-const SAMPLE = [
-  { id: "1", slug: "natural-headache-remedies", title: "12 Natural Remedies for Headaches That Actually Work", excerpt: "Discover effective, science-backed home remedies to relieve headache pain without medication.", content: "## Why Natural Remedies Work for Headaches\n\nHeadaches affect billions of people worldwide. Natural approaches can address root causes and reduce frequency over time.\n\n## 1. Stay Hydrated\nDehydration is one of the most overlooked causes of headaches. Drink a full glass of water immediately when a headache starts.\n\n## 2. Ginger Tea\nGinger contains powerful anti-inflammatory compounds. Research suggests it can be as effective as sumatriptan for migraines.\n\n## 3. Peppermint Oil\nApply diluted peppermint essential oil to your temples. Menthol relaxes muscles and improves blood flow.\n\n## 4. Magnesium\nStudies show magnesium deficiency is common in migraine sufferers. 400-500mg daily may reduce headache frequency by up to 41%.\n\n## Conclusion\nKeep a headache diary to identify your personal triggers and track which remedies work best.\n\n*Disclaimer: This article is for informational purposes only. Always consult a qualified healthcare professional.*", tags: ["headache", "natural remedies", "wellness"], readTime: "6 min", date: "2025-05-20", wordCount: 820 },
-  { id: "2", slug: "gut-health-herbs", title: "7 Best Herbs for Gut Health and Better Digestion", excerpt: "Support your digestive system with these powerful, evidence-backed herbs.", content: "## The Gut-Health Connection\n\nYour gut is home to trillions of bacteria that influence immunity, mood, and energy.\n\n## 1. Ginger Root\nGinger accelerates gastric emptying and reduces nausea, bloating, and indigestion.\n\n## 2. Peppermint\nRelaxes intestinal smooth muscles. Particularly effective for IBS symptoms.\n\n## 3. Turmeric\nCurcumin is one of the most powerful gut anti-inflammatories. Combine with black pepper for 2000% better absorption.\n\n## Conclusion\nBegin with herbal teas steeped 10-15 minutes after meals. Give any herb 2-4 weeks before evaluating.\n\n*Disclaimer: Consult a healthcare provider before starting herbal supplements.*", tags: ["gut health", "digestion", "herbs"], readTime: "5 min", date: "2025-05-18", wordCount: 640 },
-  { id: "3", slug: "boost-immunity-naturally", title: "10 Proven Ways to Boost Your Immune System Naturally", excerpt: "Strengthen your body's natural defenses with these science-backed lifestyle changes.", content: "## Understanding Immunity\n\nYour immune system is your body's defense network. Support its optimal function through consistent healthy habits.\n\n## 1. Prioritize Quality Sleep\nEven one night of poor sleep reduces immune cell activity by up to 70%.\n\n## 2. Vitamin C Rich Foods\nFocus on bell peppers, citrus fruits, strawberries, and broccoli.\n\n## 3. Elderberry\nElderberry has strong antiviral properties and may reduce cold and flu duration by up to 4 days.\n\n## 4. Vitamin D\nGet 15-20 minutes of sunlight daily or supplement with 1000-2000 IU.\n\n## Conclusion\nSmall consistent habits build a strong immune system over time.\n\n*Disclaimer: These suggestions support general wellness. Consult your healthcare provider for personalized advice.*", tags: ["immunity", "wellness", "natural health"], readTime: "7 min", date: "2025-05-15", wordCount: 760 },
-];
 
 const TOPIC_KEYWORDS = {
   "headache": "herbs+medicine+natural",
@@ -55,17 +68,23 @@ const TOPIC_KEYWORDS = {
 };
 
 function getImageUrl(article) {
-  if (article.customImage) return article.customImage;
-  var keyword = "natural+health+herbs";
-  var tags = (article.tags || []).map(function(t) { return t.toLowerCase(); });
-  var title = (article.title || "").toLowerCase();
-  for (var k in TOPIC_KEYWORDS) {
-    if (tags.some(function(t) { return t.includes(k); }) || title.includes(k)) {
-      keyword = TOPIC_KEYWORDS[k];
-      break;
-    }
-  }
-  return "https://source.unsplash.com/featured/800x500/?" + keyword + "&sig=" + (article.id || "1");
+  // source.unsplash.com was shut down, so only real uploaded images are used.
+  // Articles without one get a branded placeholder tile instead of a broken image.
+  return article.customImage || null;
+}
+
+function ImageTile(props) {
+  var src = getImageUrl(props.article);
+  var style = Object.assign({ width: "100%", height: "100%", display: "block", objectFit: "cover" }, props.style || {});
+  if (src) return React.createElement("img", { src: src, alt: props.article.title, loading: props.eager ? "eager" : "lazy", style: style });
+  var tag = ((props.article.tags || [])[0] || "natural health");
+  return React.createElement("div", {
+    "aria-hidden": "true",
+    style: Object.assign({}, style, { background: "linear-gradient(135deg,#2d6a4f22,#2d6a4f55)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "#1a4a35" })
+  },
+    React.createElement("span", { style: { fontSize: 40 } }, "🌿"),
+    React.createElement("span", { style: { fontSize: 12, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" } }, tag)
+  );
 }
 
 
@@ -77,9 +96,21 @@ function ImageUploader(props) {
   function handleFile(e) {
     var file = e.target.files[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) { alert("Image must be under 3MB"); return; }
+    if (file.size > 15 * 1024 * 1024) { alert("Image must be under 15MB"); return; }
+    // Shrink to max 1200px wide JPEG (~100KB) so articles stay fast to load.
     var reader = new FileReader();
-    reader.onload = function(ev) { onImage(ev.target.result); };
+    reader.onload = function(ev) {
+      var img = new Image();
+      img.onload = function() {
+        var scale = Math.min(1, 1200 / img.width);
+        var canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        onImage(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = ev.target.result;
+    };
     reader.readAsDataURL(file);
   }
 
@@ -126,7 +157,13 @@ const callAPI = async function(payload) {
   return data;
 };
 
+// Ad slots stay hidden until AdSense approves the site. Visible "Replace with
+// AdSense code" placeholders make the site look under construction to reviewers.
+// After approval, set this to true and put the real AdSense code in ADBlock.
+const ADS_ENABLED = false;
+
 const ADBlock = function(props) {
+  if (!ADS_ENABLED) return null;
   return React.createElement("div", {
     style: { background: "repeating-linear-gradient(45deg,#f5f5f5,#f5f5f5 2px,#fafafa 2px,#fafafa 12px)", border: "1px dashed #ddd", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "#ccc", fontSize: 11, height: props.h || 90, margin: "20px 0", fontFamily: "system-ui" }
   },
@@ -137,7 +174,7 @@ const ADBlock = function(props) {
 
 export default function Blog() {
   var s1 = useState("blog"); var view = s1[0]; var setView = s1[1];
-  var s2 = useState(SAMPLE); var articles = s2[0]; var setArticles = s2[1];
+  var s2 = useState([]); var articles = s2[0]; var setArticles = s2[1];
   var s3 = useState(null); var current = s3[0]; var setCurrent = s3[1];
   var s4 = useState(""); var topic = s4[0]; var setTopic = s4[1];
   var s5 = useState(false); var generating = s5[0]; var setGenerating = s5[1];
@@ -170,6 +207,7 @@ export default function Blog() {
   var s24 = useState(false); var copied = s24[0]; var setCopied = s24[1];
   var s25 = useState(false); var needsMigration = s25[0]; var setNeedsMigration = s25[1];
   var s26 = useState(false); var migrating = s26[0]; var setMigrating = s26[1];
+  var s27 = useState(true); var loadingArticles = s27[0]; var setLoadingArticles = s27[1];
 
   useEffect(function() {
     fetch("/api/articles")
@@ -203,8 +241,10 @@ export default function Blog() {
             }
           } catch(e) {}
         }
+        setLoadingArticles(false);
       })
       .catch(function() {
+        setLoadingArticles(false);
         // Network error - fall back to localStorage
         try {
           var stored = localStorage.getItem("nw_v2_articles");
@@ -530,15 +570,22 @@ export default function Blog() {
     );
   }
 
+  function inlineMd(text) {
+    // **bold** support; everything else stays plain text
+    return text.split(/\*\*(.+?)\*\*/g).map(function(part, j) {
+      return j % 2 === 1 ? React.createElement("strong", { key: j }, part) : part;
+    });
+  }
+
   function renderMd(md) {
     if (!md) return null;
     return md.split("\n").map(function(line, i) {
-      if (line.startsWith("## ")) return React.createElement("h2", { key: i }, line.slice(3));
-      if (line.startsWith("### ")) return React.createElement("h3", { key: i }, line.slice(4));
-      if (line.match(/^\d+\. /)) return React.createElement("li", { key: i, style: { listStyleType: "decimal" } }, line.replace(/^\d+\. /, ""));
-      if (line.startsWith("- ")) return React.createElement("li", { key: i }, line.slice(2));
-      if (line.startsWith("*")) return React.createElement("p", { key: i }, React.createElement("em", null, line.replace(/\*/g, "")));
-      if (line.trim()) return React.createElement("p", { key: i }, line);
+      if (line.startsWith("## ")) return React.createElement("h2", { key: i }, inlineMd(line.slice(3)));
+      if (line.startsWith("### ")) return React.createElement("h3", { key: i }, inlineMd(line.slice(4)));
+      if (line.match(/^\d+\. /)) return React.createElement("li", { key: i, style: { listStyleType: "decimal" } }, inlineMd(line.replace(/^\d+\. /, "")));
+      if (line.startsWith("- ")) return React.createElement("li", { key: i }, inlineMd(line.slice(2)));
+      if (line.startsWith("*") && !line.startsWith("**")) return React.createElement("p", { key: i }, React.createElement("em", null, line.replace(/\*/g, "")));
+      if (line.trim()) return React.createElement("p", { key: i }, inlineMd(line));
       return null;
     });
   }
@@ -633,19 +680,14 @@ export default function Blog() {
     React.createElement("div", { style: { maxWidth: 900, margin: "0 auto", padding: "0 16px 60px" } },
       React.createElement(ADBlock, { slot: "Leaderboard 728x90", h: 90 }),
       filtered.length === 0
-        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, activeCategory !== "All" ? "No articles in this category." : "No articles found.")
+        ? React.createElement("p", { style: { color: "#aaa", textAlign: "center", padding: 60 } }, loadingArticles ? "Loading articles…" : activeCategory !== "All" ? "No articles in this category." : "No articles found.")
         : React.createElement("div", { className: "g2", style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginTop: 8 } },
             filtered.map(function(a, i) {
               return React.createElement("div", { key: a.id, style: { gridColumn: i === 0 ? "1 / -1" : undefined } },
                 i === 2 && React.createElement(ADBlock, { slot: "In-feed 300x250", h: 100 }),
                 React.createElement("div", { className: "card", onClick: function() { setCurrent(a); setView("article"); }, style: { cursor: "pointer", display: "flex", flexDirection: i === 0 ? "row" : "column" } },
                   React.createElement("div", { style: { minHeight: i === 0 ? 210 : 150, flex: i === 0 ? "0 0 290px" : undefined, overflow: "hidden", position: "relative" } },
-                    React.createElement("img", {
-                      src: getImageUrl(a),
-                      alt: a.title,
-                      style: { width: "100%", height: "100%", objectFit: "cover", display: "block", minHeight: i === 0 ? 210 : 150 },
-                      onError: function(e) { e.target.style.display = "none"; e.target.parentNode.style.background = "linear-gradient(135deg," + A + "18," + A + "38)"; }
-                    })
+                    React.createElement(ImageTile, { article: a, eager: i === 0, style: { minHeight: i === 0 ? 210 : 150 } })
                   ),
                   React.createElement("div", { style: { padding: 20 } },
                     React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 10, flexWrap: "wrap" } }, (a.tags || []).slice(0,2).map(function(t) { return React.createElement("span", { key: t, className: "tag" }, t); })),
@@ -680,7 +722,7 @@ export default function Blog() {
         React.createElement("div", { style: { display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" } }, (current.tags || []).map(function(t) { return React.createElement("span", { key: t, className: "tag" }, t); })),
         React.createElement("h1", { style: { fontFamily: F, fontSize: 30, color: "#111", lineHeight: 1.28, marginBottom: 14 } }, current.title),
         React.createElement("div", { style: { marginBottom: 24 } },
-          React.createElement("p", { style: { fontSize: 13, color: "#bbb", marginBottom: 14 } }, current.date + " · " + current.readTime + " read · " + current.wordCount + " words"),
+          React.createElement("p", { style: { fontSize: 13, color: "#999", marginBottom: 14 } }, "By " + AUTHOR.name + " · " + current.date + " · " + current.readTime + " read"),
           React.createElement("div", { style: { display: "flex", gap: 8, flexWrap: "wrap" } },
             React.createElement("button", {
               className: "btn",
@@ -720,16 +762,12 @@ export default function Blog() {
             }, "📌 Pinterest")
           )
         ),
-        React.createElement("div", { style: { borderRadius: 14, overflow: "hidden", marginBottom: 28, maxHeight: 380 } },
-          React.createElement("img", {
-            src: getImageUrl(current),
-            alt: current.title,
-            style: { width: "100%", height: 340, objectFit: "cover", display: "block" },
-            onError: function(e) { e.target.parentNode.style.display = "none"; }
-          })
+        getImageUrl(current) && React.createElement("div", { style: { borderRadius: 14, overflow: "hidden", marginBottom: 28, maxHeight: 380 } },
+          React.createElement(ImageTile, { article: current, eager: true, style: { height: 340 } })
         ),
         React.createElement(ADBlock, { slot: "Article Top 728x90", h: 90 }),
         React.createElement("div", { className: "prose" }, renderMd(current.content)),
+        React.createElement(AuthorBox, null),
         React.createElement("div", { className: "divider" }),
         React.createElement(ADBlock, { slot: "Article Bottom 300x250", h: 250 }),
         related.length > 0 && React.createElement("div", { style: { marginTop: 40 } },
@@ -810,6 +848,8 @@ export default function Blog() {
           )
         );
       }),
+      React.createElement("h2", { style: { fontFamily: F, fontSize: 20, marginTop: 36 } }, "Who writes NaturalWell"),
+      React.createElement(AuthorBox, null),
       React.createElement("div", { style: { background: AL, border: "1px solid " + A + "33", borderRadius: 14, padding: "20px 22px", marginTop: 24 } },
         React.createElement("p", { style: { fontSize: 14, color: A, fontWeight: 500 } }, "📧 Reach us at: " + SITE.email)
       )
@@ -826,8 +866,8 @@ export default function Blog() {
       contactSent
         ? React.createElement("div", { style: { background: AL, border: "1px solid " + A + "44", borderRadius: 14, padding: "36px 24px", textAlign: "center" } },
             React.createElement("div", { style: { fontSize: 40, marginBottom: 14 } }, "✅"),
-            React.createElement("h2", { style: { fontFamily: F, fontSize: 20, color: A, marginBottom: 8 } }, "Message Sent!"),
-            React.createElement("p", { style: { fontSize: 14, color: "#666" } }, "We will get back to you within 1-2 business days.")
+            React.createElement("h2", { style: { fontFamily: F, fontSize: 20, color: A, marginBottom: 8 } }, "Your email app has opened"),
+            React.createElement("p", { style: { fontSize: 14, color: "#666" } }, "Press send in your email app and we will reply within 1-2 business days. You can also write to " + SITE.email + " directly.")
           )
         : React.createElement("div", { style: { background: "#fff", border: "1px solid #ece9e0", borderRadius: 16, padding: "28px 24px" } },
             React.createElement("label", { style: { fontSize: 12, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: ".07em", display: "block", marginBottom: 6 } }, "Full name"),
@@ -836,7 +876,11 @@ export default function Blog() {
             React.createElement("input", { className: "inp", type: "email", value: contact.email, onChange: function(e) { setContact(function(c) { return Object.assign({}, c, { email: e.target.value }); }); }, placeholder: "you@example.com", style: { marginBottom: 14 } }),
             React.createElement("label", { style: { fontSize: 12, fontWeight: 600, color: "#666", textTransform: "uppercase", letterSpacing: ".07em", display: "block", marginBottom: 6 } }, "Message"),
             React.createElement("textarea", { className: "inp", value: contact.msg, onChange: function(e) { setContact(function(c) { return Object.assign({}, c, { msg: e.target.value }); }); }, placeholder: "Your question...", style: { marginBottom: 20, minHeight: 110 } }),
-            React.createElement("button", { className: "btn", onClick: function() { if (contact.name && contact.email && contact.msg) setContactSent(true); }, style: { width: "100%", padding: 12, background: A, color: "#fff", borderRadius: 9, fontSize: 14, fontWeight: 600 } }, "Send Message →")
+            React.createElement("button", { className: "btn", onClick: function() {
+              if (!(contact.name && contact.email && contact.msg)) return;
+              window.location.href = "mailto:" + SITE.email + "?subject=" + encodeURIComponent("NaturalWell enquiry from " + contact.name) + "&body=" + encodeURIComponent(contact.msg + "\n\nReply to: " + contact.email);
+              setContactSent(true);
+            }, style: { width: "100%", padding: 12, background: A, color: "#fff", borderRadius: 9, fontSize: 14, fontWeight: 600 } }, "Send Message →")
           )
     ),
     React.createElement(Footer, null)
@@ -1052,12 +1096,7 @@ export default function Blog() {
                       style: { cursor: "pointer", display: "flex", gap: 0, overflow: "hidden" }
                     },
                       React.createElement("div", { style: { width: 120, minHeight: 110, flexShrink: 0, overflow: "hidden" } },
-                        React.createElement("img", {
-                          src: getImageUrl(a),
-                          alt: a.title,
-                          style: { width: "100%", height: "100%", objectFit: "cover" },
-                          onError: function(e) { e.target.parentNode.style.background = "linear-gradient(135deg," + A + "18," + A + "38)"; e.target.style.display = "none"; }
-                        })
+                        React.createElement(ImageTile, { article: a, style: { minHeight: 110 } })
                       ),
                       React.createElement("div", { style: { padding: "14px 16px", flex: 1 } },
                         React.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 6, flexWrap: "wrap" } },
