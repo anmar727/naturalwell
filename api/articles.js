@@ -1,4 +1,4 @@
-import { db, listArticles, ARTICLE_FIELDS } from "./_lib/db.js";
+import { db, listArticles } from "./_lib/db.js";
 import { requireAdmin } from "./_lib/auth.js";
 import { wordCount, readTime } from "../shared/markdown.js";
 import { normalizeArticle, toMeta } from "../shared/articles.js";
@@ -26,9 +26,9 @@ export default async function handler(req, res) {
       res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=600");
       var q = req.query || {};
       if (q.slug) {
-        var rows = await db("GET", "articles?select=" + ARTICLE_FIELDS + "&slug=eq." + encodeURIComponent(q.slug) + "&limit=1");
-        if (!rows.length) return res.status(404).json({ error: "Not found" });
-        return res.status(200).json(normalizeArticle(rows[0]));
+        var found = (await listArticles()).find(function (r) { return r.slug === q.slug; });
+        if (!found) return res.status(404).json({ error: "Not found" });
+        return res.status(200).json(normalizeArticle(found));
       }
       var list = (await listArticles()).map(normalizeArticle);
       return res.status(200).json(q.meta ? list.map(toMeta) : list);
@@ -51,6 +51,12 @@ export default async function handler(req, res) {
 
     if (req.method === "PUT") {
       if (!a.id) return res.status(400).json({ error: "Missing id" });
+      if (String(a.id).indexOf("file-") === 0) {
+        // First edit of a scheduled (file-based) article: save a database copy, which then takes priority.
+        var src = (await listArticles()).find(function (r) { return r.id === a.id; });
+        await db("POST", "articles", Object.assign(toRow(a), { id: String(Date.now()), slug: a.slug, date: (src && src.date) || new Date().toISOString().slice(0, 10), created_at: src && src.created_at, updated_at: new Date().toISOString() }));
+        return res.status(200).json({ success: true });
+      }
       await db("PATCH", "articles?id=eq." + encodeURIComponent(a.id), Object.assign(toRow(a), { updated_at: new Date().toISOString() }));
       return res.status(200).json({ success: true });
     }

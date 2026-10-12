@@ -11,7 +11,7 @@ export const AUTHOR = {
   name: "Anmar Arab",
   initials: "AA",
   role: "Dentist · Postgraduate training in orthodontics",
-  bio: "Anmar is a dental professional based in Muscat, Oman, with postgraduate training in orthodontics. He started NaturalWell because patients and friends kept asking which home remedies are worth trying. Every article is checked against health-authority guidance and published research, and says plainly when a remedy is not enough and you should see a doctor.",
+  bio: "Anmar is a dental professional based in Muscat, Oman, with postgraduate training in orthodontics. He started NaturalWell because people kept asking which home remedies are worth trying. He sets the site's editorial standards: every article is checked against health-authority guidance and published research, and says plainly when a remedy is not enough and you should see a doctor.",
 };
 
 export const CATEGORIES = [
@@ -107,7 +107,9 @@ export const PAGES = {
       "",
       "## How articles are written",
       "",
-      "Articles are drafted with the help of AI writing tools and then checked, edited and approved by Anmar Arab before publication. Every claim about what a remedy does should be traceable to the sources listed at the end of the article. Each article includes how the remedy is used, its known side effects and interactions, who should avoid it, and when to see a doctor.",
+      "Articles are researched and drafted with the help of AI writing tools, under editorial standards set by Anmar Arab. Before publication, every article is checked against a written quality checklist: sources must come from health authorities or published reviews and be verified to exist, claims must match those sources, and the article must include how the remedy is used, its side effects and interactions, who should avoid it, and when to see a doctor. Articles that fail the checklist are not published.",
+      "",
+      "Anmar reviews published articles regularly and corrects or removes anything that falls short. If you find a problem before he does, please tell us.",
       "",
       "## What we do not do",
       "",

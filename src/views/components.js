@@ -148,9 +148,9 @@ export function AuthorBox() {
   return h("aside", { className: "author-box", "aria-label": "About the author" },
     h("div", { className: "avatar", "aria-hidden": "true" }, AUTHOR.initials),
     h("div", null,
-      h("h3", null, "Written by " + AUTHOR.name),
+      h("h3", null, "Edited by " + AUTHOR.name),
       h("p", { className: "role" }, AUTHOR.role),
-      h("p", { className: "bio" }, AUTHOR.bio, " ", h(Link, { to: "/editorial-policy" }, "How we check our articles."))
+      h("p", { className: "bio" }, AUTHOR.bio, " ", h(Link, { to: "/editorial-policy" }, "How articles are written and checked."))
     )
   );
 }
@@ -161,7 +161,7 @@ export function Byline(props) {
   return h("div", { className: "byline" },
     h("div", { className: "avatar", "aria-hidden": "true" }, AUTHOR.initials),
     h("div", null,
-      h("span", null, "By ", h(Link, { to: "/about" }, AUTHOR.name)),
+      h("span", null, "Edited by ", h(Link, { to: "/about" }, AUTHOR.name)),
       h("small", null, dateText + ", " + a.readTime + " read")
     )
   );

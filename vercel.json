@@ -12,5 +12,16 @@
       "source": "/:path*",
       "destination": "/api/render?path=:path*"
     }
-  ]
+  ],
+  "functions": {
+    "api/render.js": {
+      "includeFiles": "content/**"
+    },
+    "api/articles.js": {
+      "includeFiles": "content/**"
+    },
+    "api/sitemap-xml.js": {
+      "includeFiles": "content/**"
+    }
+  }
 }
