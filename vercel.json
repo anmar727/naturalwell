@@ -1,7 +1,20 @@
 {
   "rewrites": [
-    { "source": "/sitemap.xml", "destination": "/api/sitemap-xml" },
-    { "source": "/", "destination": "/api/render" },
-    { "source": "/:path*", "destination": "/api/render?path=:path*" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap-xml"
+    },
+    {
+      "source": "/",
+      "destination": "/api/render"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/render?path=:path*"
+    }
   ]
 }
