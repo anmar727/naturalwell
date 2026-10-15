@@ -81,6 +81,7 @@ function documentHtml(opts) {
     '<link rel="stylesheet" href="/assets/index.css?v=' + VERSION + '" />\n' +
     (opts.jsonLd || "") + "\n" +
     '<script type="module" crossorigin src="/assets/app.js?v=' + VERSION + '"></script>\n' +
+    (opts.noindex ? "" : '<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>\n<script defer src="/_vercel/insights/script.js"></script>\n') +
     "</head>\n<body>\n" +
     '<div id="root">' + (opts.body || "") + "</div>\n" +
     (opts.data ? '<script id="nw-data" type="application/json">' + JSON.stringify(opts.data).replace(/</g, "\\u003c") + "</script>\n" : "") +
